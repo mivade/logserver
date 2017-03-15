@@ -44,9 +44,6 @@ def log_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
         while True:
             record = queue.get()
             logging.getLogger(record.name).handle(record)
-            # print({
-
-            # })
 
     class Handler(socketserver.DatagramRequestHandler):
         def handle(self):
