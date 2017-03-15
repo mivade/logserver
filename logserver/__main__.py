@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 import logging
-from .server import log_server
+from . import run_server
 from .handlers import SQLiteHandler
 
 
@@ -14,4 +14,4 @@ args = parser.parse_args()
 handlers = [logging.StreamHandler(), SQLiteHandler(args.filename)]
 
 print("Listening for logs to handle on port", args.port)
-server = log_server(handlers, port=args.port)
+server = run_server(handlers, port=args.port)
