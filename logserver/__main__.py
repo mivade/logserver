@@ -7,11 +7,16 @@ from .handlers import SQLiteHandler
 parser = ArgumentParser(
     description="Run a standalone log server using a SQLite database.")
 parser.add_argument("-p", "--port", default=9123, help="Port to listen on")
+parser.add_argument("-t", "--table", default="logs",
+                    help="Name of table to store logs in")
 parser.add_argument("-f", "--filename", default="logs.sqlite",
                     help="SQLite filename")
 args = parser.parse_args()
 
-handlers = [logging.StreamHandler(), SQLiteHandler(args.filename)]
+handlers = [
+    logging.StreamHandler(),
+    SQLiteHandler(args.filename, args.table)
+]
 
 print("Listening for logs to handle on port", args.port)
 server = run_server(handlers, port=args.port)

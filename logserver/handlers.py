@@ -17,37 +17,42 @@ class SQLiteHandler(logging.Handler):
         super(SQLiteHandler, self).__init__(level)
 
         self.path = path
-        self.table_name = table_name
+
+        for char in table_name:
+            if not char.isalnum():
+                raise RuntimeError("Invalid table name: " + table_name)
+        self.table = table_name
 
         with sqlite3.connect(self.path) as conn:
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS logs ("
-                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "name TEXT,"
-                "levelname TEXT,"
-                "timestamp REAL,"
-                "pathname TEXT,"
-                "lineno INTEGER,"
-                "threadName TEXT,"
-                "processName TEXT,"
-                "msg TEXT )")
+            query = [
+                "CREATE TABLE IF NOT EXISTS {:s} ( ".format(self.table),
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, ",
+                "name TEXT, levelname TEXT, timestamp REAL, pathname TEXT, ",
+                "lineno INTEGER, threadName TEXT, processName TEXT, msg TEXT )"
+            ]
+            conn.execute(''.join(query))
 
-            conn.execute("CREATE INDEX IF NOT EXISTS ix_logs_name ON logs (name)")
-            conn.execute("CREATE INDEX IF NOT EXISTS ix_logs_levelname ON logs (levelname)")
+            query = "CREATE INDEX IF NOT EXISTS ix_logs_{col:s} ON {table:s} ({col:s})"
+            conn.execute(query.format(col="name", table=self.table))
+            conn.execute(query.format(col="levelname", table=self.table))
 
+            conn.isolation_level = None  # workaround for Python 3.6
             if use_wal:
                 conn.execute("PRAGMA journal_mode = wal")
+            conn.isolation_level = ""  # new default; not strictly necessary here
 
     def emit(self, record):
         with sqlite3.connect(self.path) as conn:
-            conn.execute(
-                "INSERT INTO logs"
-                "(name, levelname, timestamp, pathname, lineno, threadName,"
-                " processName, msg) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (record.name, record.levelname, record.created,
-                 record.pathname, record.lineno, record.threadName,
-                 record.processName, record.msg))
+            query = [
+                "INSERT INTO {:s}".format(self.table),
+                "(name, levelname, timestamp, pathname, lineno, threadName,",
+                " processName, msg) ",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            ]
+            conn.execute("".join(query),
+                         (record.name, record.levelname, record.created,
+                          record.pathname, record.lineno, record.threadName,
+                          record.processName, record.msg))
 
 
 if __name__ == "__main__":
