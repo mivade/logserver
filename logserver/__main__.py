@@ -13,8 +13,12 @@ parser.add_argument("-f", "--filename", default="logs.sqlite",
                     help="SQLite filename")
 args = parser.parse_args()
 
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(logging.Formatter(
+    "[%(levelname)1.1s %(name)s %(asctime)s] %(msg)s"))
+
 handlers = [
-    logging.StreamHandler(),
+    stream_handler,
     SQLiteHandler(args.filename, args.table)
 ]
 
