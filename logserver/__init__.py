@@ -1,17 +1,17 @@
 import os.path
 import logging
 from logging.handlers import DatagramHandler
-from threading import Thread
+from threading import Thread, Event
 import sys
 
 if sys.version_info.major < 3:
     import SocketServer as socketserver
     import cPickle as pickle
-    from Queue import Queue
+    from Queue import Queue, Empty
 else:
     import socketserver
     import pickle
-    from queue import Queue
+    from queue import Queue, Empty
 
 
 # Default format to use with StreamHandlers
@@ -34,6 +34,8 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
     if queue is None:
         queue = Queue()
 
+    done = Event()
+
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
 
@@ -45,9 +47,12 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
         root_logger.addHandler(handler)
 
     def consume():
-        while True:
-            record = queue.get()
-            logging.getLogger(record.name).handle(record)
+        while not done.is_set():
+            try:
+                record = queue.get(timeout=1)
+                root_logger.handle(record)
+            except Empty:
+                continue
 
     class Handler(socketserver.DatagramRequestHandler):
         def handle(self):
@@ -61,14 +66,15 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
                 print("Error reading log record!")
 
     consumer = Thread(target=consume, name="log_consumer")
-    consumer.daemon = True
     consumer.start()
 
     server = socketserver.ThreadingUDPServer((host, port), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("Got keyboard interrupt. Exiting.")
+        pass
+    finally:
+        done.set()
 
 
 def create_logger(name, host="127.0.0.1", port=9123, level=logging.INFO,
@@ -89,10 +95,16 @@ def create_logger(name, host="127.0.0.1", port=9123, level=logging.INFO,
     """
     logger = logging.getLogger(name)
     logger.setLevel(level)
+
+    if len(logger.handlers) > 0:
+        return logger  # logger already configured
+
     logger.addHandler(DatagramHandler(host, port))
+
     if stream_handler:
         handler = logging.StreamHandler()
         handler.setLevel(level)
         handler.setFormatter(logging.Formatter(stream_fmt))
         logger.addHandler(handler)
+
     return logger
