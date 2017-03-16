@@ -14,6 +14,10 @@ else:
     from queue import Queue
 
 
+# Default format to use with StreamHandlers
+_FORMAT = "[%(levelname)1.1s %(name)s:%(lineno)d %(asctime)s] %(message)s"
+
+
 def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
                level=logging.INFO):
     """Target for a thread or process to run a server to aggregate and record
@@ -67,7 +71,8 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
         print("Got keyboard interrupt. Exiting.")
 
 
-def create_logger(name, host="127.0.0.1", port=9123, level=logging.INFO):
+def create_logger(name, host="127.0.0.1", port=9123, level=logging.INFO,
+                  stream_handler=True, stream_fmt=_FORMAT):
     """Create a logger and setup appropriately. For loggers running outside of
     the main process, this must be called after the process has been started
     (i.e., in the :func:`run` method of a :class:`multiprocessing.Process`
@@ -77,9 +82,17 @@ def create_logger(name, host="127.0.0.1", port=9123, level=logging.INFO):
     :param str host: Host address.
     :param int port: Port.
     :param int level: Minimum log level.
+    :param bool stream_handler: Add a :class:`logging.StreamHandler` to the
+        logger.
+    :param stream_fmt: Format to use when ``stream_handler`` is set.
 
     """
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.addHandler(DatagramHandler(host, port))
+    if stream_handler:
+        handler = logging.StreamHandler()
+        handler.setLevel(level)
+        handler.setFormatter(logging.Formatter(stream_fmt))
+        logger.addHandler(handler)
     return logger
