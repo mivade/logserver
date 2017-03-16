@@ -27,8 +27,9 @@ class SQLiteHandler(logging.Handler):
             query = [
                 "CREATE TABLE IF NOT EXISTS {:s} ( ".format(self.table),
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, ",
-                "name TEXT, levelname TEXT, timestamp REAL, pathname TEXT, ",
-                "lineno INTEGER, threadName TEXT, processName TEXT, msg TEXT )"
+                "name TEXT, levelno INTEGER, levelname TEXT, timestamp REAL, ",
+                "pathname TEXT, lineno INTEGER, threadName TEXT, ",
+                "processName TEXT, msg TEXT )"
             ]
             conn.execute(''.join(query))
 
@@ -45,14 +46,14 @@ class SQLiteHandler(logging.Handler):
         with sqlite3.connect(self.path) as conn:
             query = [
                 "INSERT INTO {:s}".format(self.table),
-                "(name, levelname, timestamp, pathname, lineno, threadName,",
+                "(name, levelno, levelname, timestamp, pathname, lineno, threadName,",
                 " processName, msg) ",
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             ]
             conn.execute("".join(query),
-                         (record.name, record.levelname, record.created,
-                          record.pathname, record.lineno, record.threadName,
-                          record.processName, record.msg))
+                         (record.name, record.levelno, record.levelname,
+                          record.created, record.pathname, record.lineno,
+                          record.threadName, record.processName, record.msg))
 
 
 if __name__ == "__main__":
