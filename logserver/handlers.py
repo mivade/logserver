@@ -36,6 +36,7 @@ class SQLiteHandler(logging.Handler):
             query = "CREATE INDEX IF NOT EXISTS ix_logs_{col:s} ON {table:s} ({col:s})"
             conn.execute(query.format(col="name", table=self.table))
             conn.execute(query.format(col="levelname", table=self.table))
+            conn.execute(query.format(col="levelno", table=self.table))
 
             conn.isolation_level = None  # workaround for Python 3.6
             if use_wal:
