@@ -11,6 +11,8 @@ Features
 * Uses UDP for fast transmission of logs
 * Server for handling aggregated logs can run independently, as a thread, or as
   as subprocess
+* Includes a convenience function for pre-configuring loggers to work with the
+  server and formatting messages on STDOUT
 * Includes a handler for logging to SQLite
 * MIT license
 
