@@ -1,16 +1,32 @@
 logserver
 =========
 
-A reusable, dependency-free log server.
+A reusable, dependency-free log server for Python.
 
-This utilizes UDP for fast transmission of log events between processes or
-threads and supports SQLite for archival.
+
+Features
+--------
+
+* No dependencies outside of the Python standard library
+* Uses UDP for fast transmission of logs
+* Server for handling aggregated logs can run independently, as a thread, or as
+  as subprocess
+* Includes a handler for logging to SQLite
+
+Future development possibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Adding configurable protocols (e.g., choose between TCP or UDP)
+* Adding optional support for third-party libraries (e.g., ZeroMQ for
+  transmitting logs, pandas/PyTables/SQLAlchemy for storing logs)
 
 
 Usage with the ``multiprocessing`` module
 -----------------------------------------
 
-Example usage::
+Example usage:
+
+.. code-block:: python
 
   from multiprocessing import Process
   from logging import StreamHandler
@@ -27,4 +43,6 @@ Running as a standalone server
 ``logserver`` can be executed as a script to run as a standalone process to
 consume logs from clients::
 
-  python -m logserver -f db.sqlite
+.. code-block:: shell-session
+
+  $ python -m logserver -f db.sqlite
