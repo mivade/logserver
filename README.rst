@@ -12,6 +12,7 @@ Features
 * Server for handling aggregated logs can run independently, as a thread, or as
   as subprocess
 * Includes a handler for logging to SQLite
+* MIT license
 
 Future development possibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
