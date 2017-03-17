@@ -42,7 +42,7 @@ Running as a standalone server
 ------------------------------
 
 ``logserver`` can be executed as a script to run as a standalone process to
-consume logs from clients::
+consume logs from clients:
 
 .. code-block:: shell-session
 
