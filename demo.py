@@ -6,7 +6,7 @@ import logserver
 from logserver.handlers import SQLiteHandler
 
 
-logger = logserver.create_logger("demo")
+logger = logserver.get_logger("demo")
 
 p = Process(target=logserver.run_server, args=[[SQLiteHandler("logs.sqlite")]])
 p.start()

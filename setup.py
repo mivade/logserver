@@ -6,7 +6,7 @@ with open("README.rst", 'r') as f:
 
 setup(
     name="logserver",
-    version="0.1.0",
+    version="0.1.1",
     author="Michael V. DePalatis",
     author_email="mike@depalatis.net",
     description="Reusable, dependency-free log server backed by SQLite",

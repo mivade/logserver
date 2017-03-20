@@ -77,12 +77,12 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
         done.set()
 
 
-def create_logger(name, host="127.0.0.1", port=9123, level=logging.INFO,
-                  stream_handler=True, stream_fmt=_FORMAT):
-    """Create a logger and setup appropriately. For loggers running outside of
-    the main process, this must be called after the process has been started
-    (i.e., in the :func:`run` method of a :class:`multiprocessing.Process`
-    instance).
+def get_logger(name, host="127.0.0.1", port=9123, level=logging.INFO,
+               stream_handler=True, stream_fmt=_FORMAT):
+    """Get or create a logger and setup appropriately. For loggers
+    running outside of the main process, this must be called after the
+    process has been started (i.e., in the :func:`run` method of a
+    :class:`multiprocessing.Process` instance).
 
     :param str name: Name of the logger.
     :param str host: Host address.
@@ -108,3 +108,5 @@ def create_logger(name, host="127.0.0.1", port=9123, level=logging.INFO,
         logger.addHandler(handler)
 
     return logger
+
+create_logger = get_logger
