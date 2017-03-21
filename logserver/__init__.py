@@ -14,6 +14,9 @@ else:
     from queue import Queue, Empty
 
 
+__version__ = "0.1.0"
+
+
 # Default format to use with StreamHandlers
 _FORMAT = "[%(levelname)1.1s %(name)s:%(lineno)d %(asctime)s] %(message)s"
 

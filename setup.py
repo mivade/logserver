@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from logserver import __version__
 
 with open("README.rst", 'r') as f:
     readme = f.read()
@@ -6,7 +7,7 @@ with open("README.rst", 'r') as f:
 
 setup(
     name="logserver",
-    version="0.1.1",
+    version=__version__,
     author="Michael V. DePalatis",
     author_email="mike@depalatis.net",
     description="Reusable, dependency-free log server backed by SQLite",
