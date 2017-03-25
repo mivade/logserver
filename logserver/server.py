@@ -28,8 +28,8 @@ class Handler(socketserver.DatagramRequestHandler):
             print("Error reading log record!")
 
 
-class LogServer(object):
-    """Class for creating log servers.
+class LogServer(Process):
+    """Log server process.
 
     :param list handlers: List of log handlers to use. If not given, only a
         :class:`logging.NullHandler` will be used.
@@ -81,13 +81,3 @@ class LogServer(object):
 
         self._server = socketserver.ThreadingUDPServer((self.host, self.port), Handler)
         self._server.serve_forever()
-
-    def start(self):
-        """Start a new log server process.
-
-        :returns: The started :class:`Process` instance.
-
-        """
-        proc = Process(target=self.run)
-        proc.start()
-        return proc
