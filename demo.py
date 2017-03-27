@@ -1,6 +1,5 @@
 import time
 import random
-import logging
 from multiprocessing import Process
 import logserver
 from logserver.handlers import SQLiteHandler

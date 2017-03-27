@@ -1,4 +1,3 @@
-import os.path
 import logging
 from logging.handlers import DatagramHandler
 from threading import Thread, Event

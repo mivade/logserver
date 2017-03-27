@@ -1,5 +1,5 @@
 import logging
-from logging.handlers import NullHandler
+from logging import NullHandler
 from multiprocessing import Process, Event
 from threading import Thread
 
@@ -12,10 +12,10 @@ except ImportError:
     import cPickle as pickle
 
 
-class Handler(socketserver.DatagramRequestHandler):
+class _Handler(socketserver.DatagramRequestHandler):
     def __init__(self, queue):
         self.queue = queue
-        super(Handler, self).__init__()
+        super(_Handler, self).__init__()
 
     def handle(self):
         try:
@@ -79,5 +79,5 @@ class LogServer(Process):
         consumer = Thread(target=self.consume, name="log_consumer")
         consumer.start()
 
-        self._server = socketserver.ThreadingUDPServer((self.host, self.port), Handler)
+        self._server = socketserver.ThreadingUDPServer((self.host, self.port), _Handler)
         self._server.serve_forever()
