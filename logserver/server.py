@@ -54,6 +54,8 @@ class LogServer(Process):
         self._done = Event()
         self._server = None
 
+        super(LogServer, self).__init__()
+
     def stop(self):
         """Shutdown the server."""
         self._done.set()
