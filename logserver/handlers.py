@@ -55,15 +55,3 @@ class SQLiteHandler(logging.Handler):
                          (record.name, record.levelno, record.levelname,
                           record.created, record.pathname, record.lineno,
                           record.threadName, record.processName, record.msg))
-
-
-if __name__ == "__main__":
-    logger = logging.getLogger("test")
-    logger.setLevel(level=logging.INFO)
-    logger.addHandler(SQLiteHandler("/tmp/test3.sqlite"))
-
-    logger.debug("I shouldn't be logged because I'm a debug message")
-    logger.info("this is a log message with info level")
-    logger.error("this is a log message with error level")
-    logger.warning("just a warning")
-    logger.critical("STOP EVERYTHING!")
