@@ -12,22 +12,6 @@ except ImportError:
     import cPickle as pickle
 
 
-class _Handler(socketserver.DatagramRequestHandler):
-    def __init__(self, queue):
-        self.queue = queue
-        super(_Handler, self).__init__()
-
-    def handle(self):
-        try:
-            # It is mostly undocumented, but there are 4 bytes which give
-            # the length of the pickled LogRecord.
-            _ = self.rfile.read(4)
-            msg = self.rfile.read()
-            self.queue.put(logging.makeLogRecord(pickle.loads(msg)))
-        except:
-            print("Error reading log record!")
-
-
 class LogServer(Process):
     """Log server process.
 
@@ -59,7 +43,6 @@ class LogServer(Process):
     def stop(self):
         """Shutdown the server."""
         self._done.set()
-        self._server.shutdown()
 
     def consume(self):
         """Loop to consume log entries that are added to the server's queue."""
@@ -81,5 +64,16 @@ class LogServer(Process):
         consumer = Thread(target=self.consume, name="log_consumer")
         consumer.start()
 
-        self._server = socketserver.ThreadingUDPServer((self.host, self.port), _Handler)
+        class RequestHandler(socketserver.DatagramRequestHandler):
+            def handle(this):
+                try:
+                    # It is mostly undocumented, but there are 4 bytes which
+                    # give the length of the pickled LogRecord.
+                    _ = this.rfile.read(4)
+                    msg = this.rfile.read()
+                    self.queue.put(logging.makeLogRecord(pickle.loads(msg)))
+                except:
+                    print("Error reading log record!")
+
+        self._server = socketserver.ThreadingUDPServer((self.host, self.port), RequestHandler)
         self._server.serve_forever()
