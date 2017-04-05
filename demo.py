@@ -1,19 +1,17 @@
 import time
 import random
-from multiprocessing import Process
-import logserver
+from logserver import LogServer, get_logger
 from logserver.handlers import SQLiteHandler
 
+logger = get_logger("demo")
 
-logger = logserver.get_logger("demo")
-
-p = Process(target=logserver.run_server, args=[[SQLiteHandler("logs.sqlite")]])
-p.start()
+server = LogServer(SQLiteHandler("logs.sqlite"))
+server.start
 
 for _ in range(10):
-    delay = random.randint(0, 10)
+    delay = random.randint(1, 5)
     logger.warning("Sleeping for %d seconds...", delay)
     time.sleep(delay)
     logger.info("Awoke!")
 
-p.terminate()
+server.stop()
