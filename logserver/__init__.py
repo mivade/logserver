@@ -12,6 +12,8 @@ else:
     import pickle
     from queue import Queue, Empty
 
+from .server import LogServer
+
 
 __version__ = "0.2.dev"
 
