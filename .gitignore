@@ -1,5 +1,7 @@
 *~
 logs.sqlite
+*-shm
+*-wal
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
