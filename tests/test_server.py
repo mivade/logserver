@@ -2,11 +2,11 @@ import os
 import os.path as osp
 import time
 import tempfile
+from multiprocessing import Event
 import logging
-from logging.handlers import DatagramHandler
 import pytest
 
-from logserver.server import LogServer
+import logserver
 
 
 @pytest.fixture
@@ -19,30 +19,32 @@ def logfile():
 def test_server(logfile):
     handler = logging.FileHandler(logfile)
     handler.setFormatter(logging.Formatter("%(msg)s"))
-    handler.setLevel(logging.WARNING)
     handlers = [handler]
 
-    server = LogServer(handlers)
-    server.start()
+    done, ready = Event(), Event()
 
-    logger = logging.getLogger("logserver")
-    logger.setLevel(logging.WARNING)
-    logger.addHandler(DatagramHandler(server.host, server.port))
+    server = logserver.make_server_process(handlers, done=done, ready=ready)
+    server.start()
+    ready.wait(timeout=1)
+
+    logger = logserver.get_logger('test', stream_handler=False)
 
     logger.debug("debug")
     logger.info("info")
     logger.warning("warning")
     logger.error("error")
     logger.critical("critical")
-    time.sleep(0.05)
+
+    time.sleep(0.25)
 
     try:
         with open(logfile, "r") as lf:
-            lines = lf.readlines()
-        print(lines)
+            lines = [l.strip() for l in lf.readlines()]
+        assert "debug" not in lines
+        assert "info" in lines
         assert "warning" in lines
         assert "error" in lines
         assert "critical" in lines
     finally:
-        # server.stop()
-        server.terminate()
+        done.set()
+        server.join(timeout=1)
