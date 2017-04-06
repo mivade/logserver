@@ -51,14 +51,6 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, done=None, queue=None,
         handler.setLevel(level)
         root_logger.addHandler(handler)
 
-    def consume():
-        while not done.is_set():
-            try:
-                record = queue.get(timeout=1)
-                root_logger.handle(record)
-            except Empty:
-                continue
-
     class Handler(socketserver.DatagramRequestHandler):
         def handle(self):
             try:
@@ -70,10 +62,20 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, done=None, queue=None,
             except:
                 print("Error reading log record!")
 
+    server = socketserver.ThreadingUDPServer((host, port), Handler)
+
+    def consume():
+        while not done.is_set():
+            try:
+                record = queue.get(timeout=1)
+                root_logger.handle(record)
+            except Empty:
+                continue
+        server.shutdown()
+
     consumer = Thread(target=consume, name="log_consumer")
     consumer.start()
 
-    server = socketserver.ThreadingUDPServer((host, port), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
