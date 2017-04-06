@@ -1,6 +1,7 @@
 import logging
 from logging.handlers import DatagramHandler
-from threading import Thread, Event
+from multiprocessing import Process, Event
+from threading import Thread
 import sys
 
 if sys.version_info.major < 3:
@@ -12,8 +13,6 @@ else:
     import pickle
     from queue import Queue, Empty
 
-from .server import LogServer
-
 
 __version__ = "0.2.dev"
 
@@ -22,7 +21,7 @@ __version__ = "0.2.dev"
 _FORMAT = "[%(levelname)1.1s %(name)s:%(lineno)d %(asctime)s] %(message)s"
 
 
-def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
+def run_server(handlers=[], host="127.0.0.1", port=9123, done=None, queue=None,
                level=logging.INFO):
     """Target for a thread or process to run a server to aggregate and record
     all log messages to disk.
@@ -31,6 +30,7 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
         :class:`logging.NullHandler` will be used.
     :param str host: Host to bind to.
     :param int port: Port number to bind to.
+    :param Event done: An event used to signal the process to stop.
     :param queue: A queue to use or None to create a new one.
     :param int level: Minimum log level.
 
@@ -38,7 +38,8 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
     if queue is None:
         queue = Queue()
 
-    done = Event()
+    if done is None:
+        done = Event()
 
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
@@ -79,6 +80,15 @@ def run_server(handlers=[], host="127.0.0.1", port=9123, queue=None,
         pass
     finally:
         done.set()
+
+
+def make_server_process(*args, **kwargs):
+    """Returns a :class:`Process` instance that calls :func:`run_server` when
+    started. Paramters are the same as thos of :func:`run_server`
+
+    """
+    p = Process(target=run_server, args=args, name="logserver", kwargs=kwargs)
+    return p
 
 
 def get_logger(name, host="127.0.0.1", port=9123, level=logging.INFO,
