@@ -77,6 +77,15 @@ def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
                 root_logger.handle(record)
             except Empty:
                 continue
+
+        # Finish processing any items left in the queue before quitting
+        while True:
+            try:
+                record = queue.get_nowait()
+                root_logger.handle(record)
+            except Empty:
+                break
+
         server.shutdown()
 
     consumer = Thread(target=consume, name="log_consumer")

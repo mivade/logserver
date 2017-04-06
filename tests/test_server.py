@@ -35,16 +35,14 @@ def test_server(logfile):
     logger.error("error")
     logger.critical("critical")
 
-    time.sleep(0.25)
+    time.sleep(0.01)
+    done.set()
+    server.join(timeout=1)
 
-    try:
-        with open(logfile, "r") as lf:
-            lines = [l.strip() for l in lf.readlines()]
-        assert "debug" not in lines
-        assert "info" in lines
-        assert "warning" in lines
-        assert "error" in lines
-        assert "critical" in lines
-    finally:
-        done.set()
-        server.join(timeout=1)
+    with open(logfile, "r") as lf:
+        lines = [l.strip() for l in lf.readlines()]
+    assert "debug" not in lines
+    assert "info" in lines
+    assert "warning" in lines
+    assert "error" in lines
+    assert "critical" in lines
