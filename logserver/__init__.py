@@ -14,7 +14,7 @@ else:
     from queue import Queue, Empty
 
 
-__version__ = "0.2.dev"
+__version__ = "0.2.0"
 
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 9123
