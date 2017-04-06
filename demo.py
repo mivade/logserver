@@ -6,7 +6,7 @@ from logserver.handlers import SQLiteHandler
 logger = get_logger("demo")
 
 server = LogServer(SQLiteHandler("logs.sqlite"))
-server.start
+server.start()
 
 for _ in range(10):
     delay = random.randint(1, 5)
