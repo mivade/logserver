@@ -4,6 +4,7 @@ import time
 import tempfile
 from multiprocessing import Event
 import logging
+import warnings
 import pytest
 
 import logserver
@@ -72,3 +73,11 @@ def test_server_thread(logfile):
     assert "warning" in lines
     assert "error" in lines
     assert "critical" in lines
+
+
+def test_create_logger():
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        logserver.create_logger("name")
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)

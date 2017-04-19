@@ -1,8 +1,9 @@
+import sys
 import logging
 from logging.handlers import DatagramHandler
 from multiprocessing import Process, Event
 from threading import Thread
-import sys
+import warnings
 
 if sys.version_info.major < 3:
     import SocketServer as socketserver
@@ -148,4 +149,9 @@ def get_logger(name, host=DEFAULT_HOST, port=DEFAULT_PORT, level=logging.INFO,
 
     return logger
 
-create_logger = get_logger
+
+def create_logger(*args, **kwargs):
+    warnings.warn("Using logserver.create_logger is deprecated. "
+                  "Please use logserver.get_logger instead.",
+                  DeprecationWarning)
+    return get_logger(*args, **kwargs)
