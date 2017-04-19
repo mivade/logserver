@@ -14,7 +14,7 @@ else:
     from queue import Queue, Empty
 
 
-__version__ = "0.2.0"
+__version__ = "0.3.dev0"
 
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 9123
@@ -107,6 +107,15 @@ def make_server_process(*args, **kwargs):
     """
     p = Process(target=run_server, args=args, name="logserver", kwargs=kwargs)
     return p
+
+
+def make_server_thread(*args, **kwargs):
+    """Identical to :func:`make_server_process` only returns a :class:`Thread`
+    instance instead.
+
+    """
+    t = Thread(target=run_server, args=args, name="logserver", kwargs=kwargs)
+    return t
 
 
 def get_logger(name, host=DEFAULT_HOST, port=DEFAULT_PORT, level=logging.INFO,

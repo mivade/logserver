@@ -37,7 +37,33 @@ def test_handling(logfile):
 
     time.sleep(0.01)
     done.set()
-    server.join(timeout=1)
+    server.join()
+
+    with open(logfile, "r") as lf:
+        lines = [l.strip() for l in lf.readlines()]
+    assert "debug" not in lines
+    assert "info" in lines
+    assert "warning" in lines
+    assert "error" in lines
+    assert "critical" in lines
+
+
+def test_server_thread(logfile):
+    done = Event()
+    handler = logging.FileHandler(logfile)
+    server = logserver.make_server_thread([handler], done=done)
+    server.start()
+
+    logger = logserver.get_logger('test', stream_handler=False)
+
+    logger.debug("debug")
+    logger.info("info")
+    logger.warning("warning")
+    logger.error("error")
+    logger.critical("critical")
+
+    done.set()
+    server.join()
 
     with open(logfile, "r") as lf:
         lines = [l.strip() for l in lf.readlines()]
