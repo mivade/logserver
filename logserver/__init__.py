@@ -1,5 +1,8 @@
+from __future__ import print_function
+
 import sys
 import logging
+import logging.handlers
 from logging.handlers import DatagramHandler
 from multiprocessing import Process, Event
 from threading import Thread
@@ -25,9 +28,21 @@ _FORMAT = "[%(levelname)1.1s %(name)s:%(lineno)d %(asctime)s] %(message)s"
 
 
 def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
-               ready=None, level=logging.INFO):
+               ready=None, pipe=None, level=logging.INFO):
     """Target for a thread or process to run a server to aggregate and record
     all log messages to disk.
+
+    Log handlers can be added on the fly by passing the `pipe` keyword argument.
+    Since instances of log handlers are not picklable, it is therefore necessary
+    to send a tuple of the following form to add a new handler::
+
+        (name, HandlerClass, args, kwargs)
+
+    where ``name`` is a name to give the handler (so it can later be removed),
+    ``HandlerClass`` is a log handler class found in the `logging` or
+    `logging.handlers` modules, and ``args`` and ``kwargs`` are those
+    required for instantiating the handler class. To remove the handler, simply
+    send a length-1 tuple ``(name,)``.
 
     :param list handlers: List of log handlers to use. If not given, only a
         :class:`logging.NullHandler` will be used.
@@ -35,6 +50,8 @@ def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
     :param int port: Port number to bind to.
     :param Event done: An event used to signal the process to stop.
     :param Event ready: Event used to communicate that the server is ready.
+    :param multiprocessing.Connection pipe: Use to instruct the server to add or
+        remove log handlers on the fly.
     :param int level: Minimum log level.
 
     """
@@ -49,12 +66,15 @@ def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
 
+    # Add permanent handlers
     if len(handlers) == 0:
         handlers.append(logging.NullHandler())
-
     for handler in handlers:
         handler.setLevel(level)
         root_logger.addHandler(handler)
+
+    # Stores handlers to be added or removed later
+    runtime_handlers = dict()
 
     class Handler(socketserver.DatagramRequestHandler):
         def handle(self):
@@ -70,6 +90,7 @@ def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
     server = socketserver.ThreadingUDPServer((host, port), Handler)
 
     def consume():
+        """Log record consumer thread."""
         while not done.is_set():
             try:
                 record = queue.get(timeout=1)
@@ -87,8 +108,61 @@ def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
 
         server.shutdown()
 
+    def modify_handlers(pipe):
+        """Thread target to listen for handlers to add/remove."""
+        while not done.is_set():
+            if not pipe.poll(1):
+                continue
+
+            try:
+                msg = pipe.recv()
+                if not isinstance(msg, (tuple, list)):
+                    print("Invalid message encountered")
+                    continue
+                if len(msg) not in (1, 4):
+                    print("Invalid message length")
+                    continue
+            except EOFError:
+                continue
+
+            name = msg[0]
+
+            try:
+                # User wants to remove a handler
+                handler = runtime_handlers.pop(name)
+                root_logger.removeHandler(handler)
+            except KeyError:
+                # User wants to add a handler
+                if len(msg) != 4:
+                    print("Need a tuple of length 4 to create a new handler: "
+                          "(name, HandlerClass, args, kwargs)")
+                    continue
+
+                # Get handler class from logging or logging.handlers
+                try:
+                    handler_class = getattr(logging, msg[1])
+                except AttributeError:
+                    if not hasattr(logging.handlers, msg[1]):
+                        print(msg[1], "not in logging or logging.handlers")
+                        continue
+                    else:
+                        handler_class = getattr(logging.handlers, msg[1])
+
+                # Try to instantiate the logger and add it
+                try:
+                    handler = handler_class(*msg[2], **msg[3])
+                    root_logger.addHandler(handler)
+                except Exception as e:
+                    print("Error instantiating handler:", str(e))
+                    continue
+
     consumer = Thread(target=consume, name="log_consumer")
     consumer.start()
+
+    if len(runtime_handlers) != 0:
+        modifier = Thread(target=modify_handlers, name="handler_modifier")
+        modifier.start()
+
     ready.set()
 
     try:
