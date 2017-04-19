@@ -16,7 +16,7 @@ def logfile():
     os.remove(filename)
 
 
-def test_handling(logfile):
+def test_server_process(logfile):
     handler = logging.FileHandler(logfile)
     handler.setFormatter(logging.Formatter("%(msg)s"))
     handlers = [handler]

@@ -24,7 +24,7 @@ _FORMAT = "[%(levelname)1.1s %(name)s:%(lineno)d %(asctime)s] %(message)s"
 
 
 def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
-               ready=None, queue=None, level=logging.INFO):
+               ready=None, level=logging.INFO):
     """Target for a thread or process to run a server to aggregate and record
     all log messages to disk.
 
@@ -34,12 +34,10 @@ def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
     :param int port: Port number to bind to.
     :param Event done: An event used to signal the process to stop.
     :param Event ready: Event used to communicate that the server is ready.
-    :param queue: A queue to use or None to create a new one.
     :param int level: Minimum log level.
 
     """
-    if queue is None:
-        queue = Queue()
+    queue = Queue()
 
     if done is None:
         done = Event()
