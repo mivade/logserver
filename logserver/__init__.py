@@ -44,6 +44,9 @@ def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
     required for instantiating the handler class. To remove the handler, simply
     send a length-1 tuple ``(name,)``.
 
+    For convenience, the :class:`CreateHandlerMessage` class can be used to
+    construct the tuple for adding a handler.
+
     :param list handlers: List of log handlers to use. If not given, only a
         :class:`logging.NullHandler` will be used.
     :param str host: Host to bind to.
@@ -116,6 +119,7 @@ def run_server(handlers=[], host=DEFAULT_HOST, port=DEFAULT_PORT, done=None,
 
             try:
                 msg = pipe.recv()
+                print("\n\n\n", msg, "\n\n\n")
                 if not isinstance(msg, (tuple, list)):
                     print("Invalid message encountered")
                     continue
@@ -229,3 +233,36 @@ def create_logger(*args, **kwargs):
                   "Please use logserver.get_logger instead.",
                   DeprecationWarning)
     return get_logger(*args, **kwargs)
+
+
+class CreateHandlerMessage(object):
+    """Convience class for making handler creation messages to send to a
+    running log server.
+
+    """
+    name = None
+    handler = None
+    args = []
+    kwargs = dict()
+
+    def __str__(self):
+        return "<CreateHandlerMessage name={}, handler={}, args={}, kwargs={}>"\
+               .format(self.name, self.handler, self.args, self.kwargs)
+
+    def to_tuple(self):
+        assert isinstance(self.name, str)
+        assert isinstance(self.handler, str)
+        assert isinstance(self.args, (list, tuple))
+        assert isinstance(self.kwargs, dict)
+        return self.name, self.handler, self.args, self.kwargs
+
+    @classmethod
+    def from_tuple(cls, data):
+        """Create a new CreateHandlerMessage from a tuple."""
+        obj = cls()
+        obj.name, obj.handler, obj.args, obj.kwargs = data
+        assert isinstance(obj.name, str)
+        assert isinstance(obj.handler, str)
+        assert isinstance(obj.args, (list, tuple))
+        assert isinstance(obj.kwargs, dict)
+        return obj
