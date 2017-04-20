@@ -5,7 +5,7 @@ from tempfile import gettempdir
 import sqlite3
 import pytest
 
-from logserver.handlers import SQLiteHandler
+from ..handlers import SQLiteHandler
 
 
 @pytest.fixture
