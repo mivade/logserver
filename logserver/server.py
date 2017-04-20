@@ -199,7 +199,7 @@ class LogServerProcess(LogServer, mp.Process):
         super(LogServerProcess, self).__init__(handlers, host, port, pipe, level)
 
         self.done = mp.Event()
-        self.read = mp.Event()
+        self.ready = mp.Event()
 
 
 class LogServerThread(LogServer, th.Thread):
@@ -207,6 +207,9 @@ class LogServerThread(LogServer, th.Thread):
                  level=logging.INFO):
         super(th.Thread, self).__init__()
         super(LogServerThread, self).__init__(handlers, host, port, pipe, level)
+
+        self.done = th.Event()
+        self.ready = th.Event()
 
 
 if __name__ == "__main__":
