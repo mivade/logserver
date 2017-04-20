@@ -24,10 +24,13 @@ except ImportError:
     Union = None
 
 
+_DEFAULT_FORMAT = "[%(levelname)1.1s %(name)s:%(lineno)d %(asctime)s] %(message)s"
+
+
 class LogServer(object):
     """Base server for logging from multiple processes or threads."""
     def __init__(self, handlers=[], host=None, port=None, level=logging.INFO):
-        self.host = host or "localhost"
+        self.host = host or "127.0.0.1"
         self.port = port or 9123
 
         self.handlers = handlers
@@ -117,7 +120,7 @@ class LogServer(object):
 
         if stream_handler:
             if stream_fmt is None:
-                stream_fmt = "[%(levelname)1.1s %(name)s:%(lineno)d %(asctime)s] %(message)s"
+                stream_fmt = _DEFAULT_FORMAT
             handler = logging.StreamHandler()
             handler.setLevel(self.level)
             handler.setFormatter(logging.Formatter(stream_fmt))
@@ -147,13 +150,15 @@ class LogServer(object):
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.bind((self.host, self.port))
 
+        def ready():
+            socks, _, _ = select([sock], [], [], 1)
+            return sock in socks
+
         while not self.done.is_set():
             try:
-                socks, _, _ = select([sock], [], [], 1)
-                if sock in socks:
-                    length = struct.unpack(">L", sock.recv(4))[0]
-                    precord = sock.recv(length)
-                    record = logging.makeLogRecord(pickle.loads(precord))
+                if ready():
+                    data = sock.recv(4096)  # FIXME: more robust length
+                    record = logging.makeLogRecord(pickle.loads(data[4:]))
                     self._record_queue.put(record)
                 else:
                     continue
@@ -172,6 +177,9 @@ class LogServer(object):
                 if len(msg) == 4:
                     Handler = self.get_handler_class(msg[1])
                     handler = Handler(*msg[2], **msg[3])
+                    handler.setLevel(self.level)
+                    # FIXME: formatter
+                    # handler.setFormatter(logging.Formatter(_DEFAULT_FORMAT))
                     self._runtime_handlers[msg[0]] = handler
                     self.logger.addHandler(handler)
 

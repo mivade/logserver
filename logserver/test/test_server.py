@@ -16,9 +16,18 @@ from ..server import LogServer, LogServerProcess, LogServerThread
 def server_process():
     p = LogServerProcess()
     yield p
-    p.done.set()
-    if p.join(timeout=1) is None:
+    p.stop()
+    p.join(timeout=1)
+    if p.exitcode != 0:
         p.terminate()
+
+
+@pytest.fixture
+def server_thread():
+    thread = LogServerThread()
+    yield thread
+    thread.stop()
+    thread.join(timeout=1)
 
 
 @pytest.fixture
@@ -79,11 +88,34 @@ def test_process_log_server(server_process, temp_file):
 
     logger = server_process.get_logger("test", stream_handler=False)
     uuid = str(uuid4())
-    logger.error(uuid)
-    time.sleep(1)
+    time.sleep(0.05)
+    logger.info(uuid)
+    time.sleep(0.05)
 
     with open(temp_file, 'r') as f:
         assert uuid in f.read()
 
+    server_process.remove_handler("test")
+
     server_process.stop()
     server_process.join(timeout=1)
+
+
+def test_threaded_log_server(server_thread, temp_file):
+    server_thread.start()
+    assert server_thread.ready.wait(timeout=1) is not None
+    server_thread.add_handler("test", "FileHandler", temp_file)
+
+    logger = server_thread.get_logger("test", stream_handler=False)
+    uuid = str(uuid4())
+    time.sleep(0.05)
+    logger.info(uuid)
+    time.sleep(0.05)
+
+    with open(temp_file, 'r') as f:
+        assert uuid in f.read()
+
+    server_thread.remove_handler("test")
+
+    server_thread.stop()
+    server_thread.join(timeout=1)
