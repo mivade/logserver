@@ -1,8 +1,11 @@
+from __future__ import print_function
+
 import sys
 import threading as th
 import multiprocessing as mp
 import logging
 import logging.handlers
+import struct
 from socket import socket, AF_INET, SOCK_DGRAM
 from select import select
 
@@ -23,23 +26,23 @@ except ImportError:
 
 class LogServer(object):
     """Base server for logging from multiple processes or threads."""
-    def __init__(self, handlers, host, port, pipe=None, level=logging.INFO):
+    def __init__(self, handlers=[], host=None, port=None, level=logging.INFO):
         self.host = host or "localhost"
         self.port = port or 9123
 
         self.handlers = handlers
-        self.runtime_handlers = dict()
         self.level = level
 
-        # Events are instantiated by implementations so we can choose from
-        # either threaded or multiprocess varieties
-        self.done = None  # type: Union[mp.Event, th.Event]
+        # Events and queues are instantiated by implementations so we can
+        # choose from either threaded or multiprocess varieties
+        self.done = None   # type: Union[mp.Event, th.Event]
         self.ready = None  # type: Union[mp.Event, th.Event]
 
-        self.pipe = pipe
+        self._record_queue = queue.Queue()  # this only runs in threads
+        self._handler_queue = queue.Queue()  # type: Union[queue.Queue, mp.Queue]
 
-        self._record_queue = queue.Queue()
-        self._handler_queue = queue.Queue()
+        # Will be the root logger once the thread/process boots
+        self.logger = None  # type: logging.Logger
 
         self._runtime_handlers = {}
 
@@ -62,16 +65,9 @@ class LogServer(object):
 
         """
         Handler = self.get_handler_class(handler_class)
-        if not issubclass(Handler, logging.Handler):
-            raise TypeError(handler_class + " is not a logging.Handler")
-
-        try:
-            handler = Handler(*args, **kwargs)
-            self._handler_queue.put((name, handler_class, args, kwargs))
-            return handler
-        except Exception as e:
-            print("Unable to create handler")
-            print(e)
+        handler = Handler(*args, **kwargs)
+        self._handler_queue.put((name, handler_class, args, kwargs))
+        return handler
 
     def remove_handler(self, name):
         """Remove a handler from the root logger.
@@ -95,7 +91,12 @@ class LogServer(object):
             mod = logging.handlers
         else:
             raise RuntimeError("handler class not found")
-        return getattr(mod, name)
+
+        Handler = getattr(mod, name)
+        if not issubclass(Handler, logging.Handler):
+            raise TypeError(name + " is not a logging.Handler")
+
+        return Handler
 
     def get_logger(self, name, stream_handler=True, stream_fmt=None):
         """Return a pre-configured logger that will communicate with the log
@@ -124,12 +125,12 @@ class LogServer(object):
 
         return logger
 
-    def _consumer_thread(self, logger):
+    def _consumer_thread(self):
         """Thread for consuming log records."""
         while not self.done.is_set():
             try:
                 record = self._record_queue.get(timeout=1)
-                logger.handle(record)
+                self.logger.handle(record)
             except queue.Empty:
                 continue
 
@@ -137,7 +138,7 @@ class LogServer(object):
         while True:
             try:
                 record = self._record_queue.get_nowait()
-                logger.handle(record)
+                self.logger.handle(record)
             except queue.Empty:
                 break
 
@@ -150,70 +151,84 @@ class LogServer(object):
             try:
                 socks, _, _ = select([sock], [], [], 1)
                 if sock in socks:
-                    length = sock.recv(4)
+                    length = struct.unpack(">L", sock.recv(4))[0]
                     precord = sock.recv(length)
                     record = logging.makeLogRecord(pickle.loads(precord))
                     self._record_queue.put(record)
                 else:
                     continue
-            except:
-                print("Exception!")
+            except Exception as e:
+                print(e)
 
         sock.close()
 
-    def _handler_thread(self, logger):
+    def _handler_thread(self):
         """Thread for adding/removing handlers to the root logger."""
         while not self.done.is_set():
             try:
                 msg = self._handler_queue.get(timeout=1)
+
+                # Add a handler
                 if len(msg) == 4:
-                    handler =
-                    logger.addHandler()
+                    Handler = self.get_handler_class(msg[1])
+                    handler = Handler(*msg[2], **msg[3])
+                    self._runtime_handlers[msg[0]] = handler
+                    self.logger.addHandler(handler)
+
+                # Remove a handler
+                elif len(msg) == 1:
+                    if msg[0] in self._runtime_handlers:
+                        self.logger.removeHandler(self._runtime_handlers[msg[0]])
+                        self._runtime_handlers.pop(msg[0])
+                    else:
+                        print("Oops! No handler named", msg[0])
             except queue.Empty:
                 pass
+            except Exception as e:
+                print(e)
 
     def run(self):
-        root_logger = logging.getLogger()
-        root_logger.setLevel(self.level)
+        self.logger = logging.getLogger()
+        self.logger.setLevel(self.level)
 
         if len(self.handlers) == 0:
             self.handlers.append(logging.NullHandler())
 
         for handler in self.handlers:
-            root_logger.addHandler(handler)
+            handler.setLevel(self.level)
+            self.logger.addHandler(handler)
 
         threads = [
             th.Thread(target=self._socket_thread),
-            th.Thread(target=self._consumer_thread, args=(root_logger,)),
-            th.Thread(target=self._handler_thread, args=(root_logger,))
+            th.Thread(target=self._consumer_thread),
+            th.Thread(target=self._handler_thread)
         ]
-        for thread in threads:
-            thread.start()
+
+        [thread.start() for thread in threads]
+        self.ready.set()
         [thread.join() for thread in threads]
+
+    def stop(self):
+        """Signal the server to stop."""
+        self.done.set()
 
 
 class LogServerProcess(LogServer, mp.Process):
     def __init__(self, handlers=[], host=None, port=None, pipe=None,
                  level=logging.INFO):
-        super(mp.Process, self).__init__()
-        super(LogServerProcess, self).__init__(handlers, host, port, pipe, level)
+        mp.Process.__init__(self)
+        LogServer.__init__(self, handlers, host, port, level)
 
         self.done = mp.Event()
         self.ready = mp.Event()
+        self._handler_queue = mp.Queue()
 
 
 class LogServerThread(LogServer, th.Thread):
     def __init__(self, handlers=[], host=None, port=None, pipe=None,
                  level=logging.INFO):
-        super(th.Thread, self).__init__()
-        super(LogServerThread, self).__init__(handlers, host, port, pipe, level)
+        th.Thread.__init__(self)
+        LogServer.__init__(self, handlers, host, port, level)
 
         self.done = th.Event()
         self.ready = th.Event()
-
-
-if __name__ == "__main__":
-    server = LogServerThread([logging.StreamHandler], "localhost", "9123")
-    server.start()
-
-    logger = server.get_logger("test")
