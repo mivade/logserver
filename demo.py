@@ -2,22 +2,22 @@ import time
 import logging
 import random
 from multiprocessing import Event
-import logserver
+from logserver import LogServerProcess
 from logserver.handlers import SQLiteHandler
-
-logger = logserver.get_logger("demo", stream_handler=False)
-finished, ready = Event(), Event()
 
 handlers = [
     SQLiteHandler("logs.sqlite"),
     logging.StreamHandler()
 ]
-server = logserver.make_server_process(handlers, done=finished, ready=ready)
+
+server = LogServerProcess(handlers)
 server.start()
 
 # If we don't wait for the server to finish initializing, we can lose the first
 # log message.
-ready.wait()
+server.ready.wait()
+
+logger = server.get_logger("demo")
 
 for i in range(5):
     delay = random.randint(1, 5)
@@ -25,5 +25,5 @@ for i in range(5):
     time.sleep(delay)
     logger.info("Iteration %d: Awoke!", i)
 
-finished.set()
+server.stop()
 server.join()
