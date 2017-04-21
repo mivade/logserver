@@ -9,7 +9,7 @@ import warnings
 
 from .server import LogServer, LogServerProcess, LogServerThread
 
-__version__ = "0.3.dev0"
+__version__ = "0.3.0"
 
 
 def run_server(handlers=[], host=None, port=None, level=logging.INFO,

@@ -10,7 +10,7 @@ setup(
     version=__version__,
     author="Michael V. DePalatis",
     author_email="mike@depalatis.net",
-    description="Reusable, dependency-free log server backed by SQLite",
+    description="Reusable, dependency-free log server",
     long_description=readme,
     packages=find_packages(),
     classifiers=[
@@ -21,6 +21,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6"
     ]
