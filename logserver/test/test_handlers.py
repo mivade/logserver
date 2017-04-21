@@ -5,12 +5,13 @@ from tempfile import gettempdir
 import sqlite3
 import pytest
 
+from .util import ascii_string
 from ..handlers import SQLiteHandler
 
 
 @pytest.fixture
 def sqlite_path():
-    path = osp.join(gettempdir(), "out.sqlite")
+    path = osp.join(gettempdir(), ascii_string() + ".sqlite")
     yield path
     os.remove(path)
 
