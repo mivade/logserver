@@ -101,17 +101,20 @@ class LogServer(object):
 
         return Handler
 
-    def get_logger(self, name, stream_handler=True, stream_fmt=None):
+    def get_logger(self, name, stream_handler=True, stream_fmt=None,
+                   level=None):
         """Return a pre-configured logger that will communicate with the log
         server. If the logger already exists, it will be returned unmodified.
 
         :param str name: Name of the logger.
         :param bool stream_handler: Automatically add a stream handler.
         :param stream_fmt: Format to use when ``stream_handler`` is set.
+        :param int level: Logging level to use.
 
         """
+        level = level or self.level
         logger = logging.getLogger(name)
-        logger.setLevel(self.level)
+        logger.setLevel(level)
 
         if len(logger.handlers) > 0:
             return logger  # logger already configured
