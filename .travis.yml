@@ -4,11 +4,8 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
-  - "pypy"
-  - "pypy3"
-notifications:
-  email:
-    on_success: never
+  # - "pypy"
+  # - "pypy3"
 install:
   - pip install -r test-requirements.txt
   - python setup.py install
