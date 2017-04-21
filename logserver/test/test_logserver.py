@@ -61,6 +61,7 @@ def test_run_server(logfile):
                      kwargs={"done": done, "ready": ready})
     server.start()
     ready.wait()
+    time.sleep(0.1)
 
     logger = get_logger(ascii_string(), stream_handler=False)
 
