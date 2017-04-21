@@ -32,8 +32,8 @@ def run_server(handlers=[], host=None, port=None, level=logging.INFO,
     server = LogServer(handlers, host, port, level)
 
     # Setting this to use the multiprocessing versions for most flexibility.
-    server.done = done or multiprocessing.Event()
-    server.ready = ready or multiprocessing.Event()
+    server.done = done if done is not None else multiprocessing.Event()
+    server.ready = ready if ready is not None else multiprocessing.Event()
 
     server.run()
 
