@@ -1,6 +1,9 @@
 logserver
 =========
 
+.. image:: https://travis-ci.org/mivade/logserver.svg?branch=master
+    :target: https://travis-ci.org/mivade/logserver
+
 A reusable, dependency-free log server for Python.
 
 
@@ -10,18 +13,11 @@ Features
 * No dependencies outside of the Python standard library
 * Uses UDP for fast transmission of logs
 * Server for handling aggregated logs can run independently, as a thread, or as
-  as subprocess
+  as a subprocess
 * Includes a convenience function for pre-configuring loggers to work with the
   server and formatting messages on STDOUT
 * Includes a handler for logging to SQLite
 * MIT license
-
-Future development possibilities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-* Adding configurable protocols (e.g., choose between TCP or UDP)
-* Adding optional support for third-party libraries (e.g., ZeroMQ for
-  transmitting logs, pandas/PyTables/SQLAlchemy for storing logs)
 
 
 Usage with the ``multiprocessing`` module
@@ -49,3 +45,14 @@ consume logs from clients:
 .. code-block:: shell-session
 
   $ python -m logserver -f db.sqlite
+
+
+Development
+-----------
+
+Testing requires ``pytest`` and ``pytest-cov``. To run tests:
+
+.. code-block:: shell-session
+
+  $ pip install -r test-requirements.txt
+  $ pytest
