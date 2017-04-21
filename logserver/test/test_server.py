@@ -8,6 +8,7 @@ import time
 
 import pytest
 
+from .util import ascii_string
 from ..handlers import SQLiteHandler
 from ..server import LogServer, LogServerProcess, LogServerThread
 
@@ -57,19 +58,20 @@ class TestLogServer:
 
     def test_get_logger(self):
         server = LogServer()
-        logger = server.get_logger("defaults")
+        name = ascii_string()
+        logger = server.get_logger(name)
         assert isinstance(logger, logging.Logger)
-        assert logger.name == "defaults"
+        assert logger.name == name
 
         # should have DatagramHandler and StreamHandler
         assert len(logger.handlers) == 2
 
         # once configured, shouldn't add more handlers
-        logger = server.get_logger("defaults")
+        logger = server.get_logger(ascii_string())
         assert len(logger.handlers) == 2
 
         # don't add a stream handler
-        logger = server.get_logger("nostream", stream_handler=False)
+        logger = server.get_logger(ascii_string(), stream_handler=False)
         assert len(logger.handlers) == 1
 
     def test_add_remove_handler(self):
@@ -106,7 +108,7 @@ def test_threaded_log_server(server_thread, temp_file):
     assert server_thread.ready.wait(timeout=1) is not None
     server_thread.add_handler("test", "FileHandler", temp_file)
 
-    logger = server_thread.get_logger("test", stream_handler=False)
+    logger = server_thread.get_logger(ascii_string(), stream_handler=False)
     uuid = str(uuid4())
     time.sleep(0.05)
     logger.info(uuid)
