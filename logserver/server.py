@@ -225,8 +225,7 @@ class LogServer(object):
 
 
 class LogServerProcess(LogServer, mp.Process):
-    def __init__(self, handlers=[], host=None, port=None, pipe=None,
-                 level=logging.INFO):
+    def __init__(self, handlers=[], host=None, port=None, level=logging.INFO):
         mp.Process.__init__(self)
         LogServer.__init__(self, handlers, host, port, level)
 
@@ -236,8 +235,7 @@ class LogServerProcess(LogServer, mp.Process):
 
 
 class LogServerThread(LogServer, th.Thread):
-    def __init__(self, handlers=[], host=None, port=None, pipe=None,
-                 level=logging.INFO):
+    def __init__(self, handlers=[], host=None, port=None, level=logging.INFO):
         th.Thread.__init__(self)
         LogServer.__init__(self, handlers, host, port, level)
 
