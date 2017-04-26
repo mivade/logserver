@@ -29,9 +29,12 @@ Example usage:
 
   from multiprocessing import Process
   from logging import StreamHandler
-  from logserver import run_server
+  from logserver import LogServerProcess
 
-  Process(target=run_server, args=(StreamHandler(),)).start()
+  handlers = [StreamHandler()]
+  server = LogServerProcess(handlers)
+  server.start()
+  server.ready.wait()
 
   # do other stuff...
 
