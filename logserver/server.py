@@ -41,7 +41,6 @@ class LogServer(object):
         self.done = None   # type: Union[mp.Event, th.Event]
         self.ready = None  # type: Union[mp.Event, th.Event]
 
-        self._record_queue = queue.Queue()  # this only runs in threads
         self._handler_queue = queue.Queue()  # type: Union[queue.Queue, mp.Queue]
 
         # Will be the root logger once the thread/process boots
