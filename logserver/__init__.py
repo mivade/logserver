@@ -8,6 +8,7 @@ import multiprocessing
 import warnings
 
 from .server import LogServer, LogServerProcess, LogServerThread
+from ._constants import DEFAULT_FORMAT
 
 __version__ = "0.3.1"
 
@@ -38,7 +39,7 @@ def run_server(handlers=[], host=None, port=None, level=logging.INFO,
     server.run()
 
 
-def get_logger(name, host=None, port=None, level=logging.INFO,
+def get_logger(name, host="127.0.0.1", port=9123, level=logging.INFO,
                stream_handler=True, stream_fmt=None):
     """Get or create a logger and setup appropriately. For loggers
     running outside of the main process, this must be called after the
@@ -54,8 +55,23 @@ def get_logger(name, host=None, port=None, level=logging.INFO,
     :param stream_fmt: Format to use when ``stream_handler`` is set.
 
     """
-    server = LogServer([], host, port)
-    return server.get_logger(name, stream_handler, stream_fmt, level)
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    if len(logger.handlers) > 0:
+        return logger  # logger already configured
+
+    logger.addHandler(logging.handlers.DatagramHandler(host, port))
+
+    if stream_handler:
+        if stream_fmt is None:
+            stream_fmt = DEFAULT_FORMAT
+        handler = logging.StreamHandler()
+        handler.setLevel(level)
+        handler.setFormatter(logging.Formatter(stream_fmt))
+        logger.addHandler(handler)
+
+    return logger
 
 
 def create_logger(*args, **kwargs):

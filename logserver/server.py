@@ -5,7 +5,6 @@ import threading as th
 import multiprocessing as mp
 import logging
 import logging.handlers
-import struct
 from socket import socket, AF_INET, SOCK_DGRAM
 from select import select
 
@@ -17,14 +16,12 @@ else:
     import cPickle as pickle
 
 from . import handlers
+from ._constants import DEFAULT_FORMAT
 
 try:
     from typing import Union
 except ImportError:
     Union = None
-
-
-_DEFAULT_FORMAT = "[%(levelname)1.1s %(name)s:%(lineno)d %(asctime)s] %(message)s"
 
 
 class LogServer(object):
@@ -122,7 +119,7 @@ class LogServer(object):
 
         if stream_handler:
             if stream_fmt is None:
-                stream_fmt = _DEFAULT_FORMAT
+                stream_fmt = DEFAULT_FORMAT
             handler = logging.StreamHandler()
             handler.setLevel(self.level)
             handler.setFormatter(logging.Formatter(stream_fmt))
@@ -164,7 +161,7 @@ class LogServer(object):
                     handler = Handler(*msg[2], **msg[3])
                     handler.setLevel(self.level)
                     # FIXME: formatter
-                    # handler.setFormatter(logging.Formatter(_DEFAULT_FORMAT))
+                    # handler.setFormatter(logging.Formatter(DEFAULT_FORMAT))
                     self._runtime_handlers[msg[0]] = handler
                     self.logger.addHandler(handler)
 
