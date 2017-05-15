@@ -131,23 +131,6 @@ class LogServer(object):
 
         return logger
 
-    def _consumer_thread(self):
-        """Thread for consuming log records."""
-        while not self.done.is_set():
-            try:
-                record = self._record_queue.get(timeout=1)
-                self.logger.handle(record)
-            except queue.Empty:
-                continue
-
-        # Finish processing any items left in the queue before quitting
-        while True:
-            try:
-                record = self._record_queue.get_nowait()
-                self.logger.handle(record)
-            except queue.Empty:
-                break
-
     def _socket_thread(self):
         """Thread for listening on the UDP socket."""
         sock = socket(AF_INET, SOCK_DGRAM)
@@ -162,16 +145,16 @@ class LogServer(object):
                 if ready():
                     data = sock.recv(4096)  # FIXME: more robust length
                     record = logging.makeLogRecord(pickle.loads(data[4:]))
-                    self._record_queue.put(record)
+                    self.logger.handle(record)
                 else:
-                    continue
+                    self._check_handler_queue()
             except Exception as e:
                 print(e)
 
         sock.close()
 
-    def _handler_thread(self):
-        """Thread for adding/removing handlers to the root logger."""
+    def _check_handler_queue(self):
+        """Thread to check if we need to add or remove a handler."""
         while not self.done.is_set():
             try:
                 msg = self._handler_queue.get(timeout=1)
@@ -202,22 +185,38 @@ class LogServer(object):
         self.logger = logging.getLogger()
         self.logger.setLevel(self.level)
 
+        # Add handlers
         if len(self.handlers) == 0:
             self.handlers.append(logging.NullHandler())
-
         for handler in self.handlers:
             handler.setLevel(self.level)
             self.logger.addHandler(handler)
 
-        threads = [
-            th.Thread(target=self._socket_thread),
-            th.Thread(target=self._consumer_thread),
-            th.Thread(target=self._handler_thread)
-        ]
+        # Await instructions to add/remove handlers
+        handler_thread = th.Thread(target=self._check_handler_queue)
+        handler_thread.start()
 
-        [thread.start() for thread in threads]
+        # Start server
+        sock = socket(AF_INET, SOCK_DGRAM)
+        sock.bind((self.host, self.port))
         self.ready.set()
-        [thread.join() for thread in threads]
+
+        def ready():
+            socks, _, _ = select([sock], [], [], 1)
+            return sock in socks
+
+        while not self.done.is_set():
+            try:
+                if ready():
+                    data = sock.recv(4096)  # FIXME: more robust length
+                    record = logging.makeLogRecord(pickle.loads(data[4:]))
+                    self.logger.handle(record)
+                else:
+                    continue
+            except Exception as e:
+                print(e)
+
+        sock.close()
 
     def stop(self):
         """Signal the server to stop."""
