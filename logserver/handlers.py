@@ -54,4 +54,4 @@ class SQLiteHandler(logging.Handler):
             conn.execute("".join(query),
                          (record.name, record.levelno, record.levelname,
                           record.created, record.pathname, record.lineno,
-                          record.threadName, record.processName, record.message))
+                          record.threadName, record.processName, record.msg))
