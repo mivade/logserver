@@ -1,4 +1,5 @@
 import logging
+import traceback as tb
 import sqlite3
 
 
@@ -29,7 +30,7 @@ class SQLiteHandler(logging.Handler):
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, ",
                 "name TEXT, levelno INTEGER, levelname TEXT, timestamp REAL, ",
                 "pathname TEXT, lineno INTEGER, threadName TEXT, ",
-                "processName TEXT, msg TEXT )"
+                "processName TEXT, msg TEXT, exc_info TEXT )"
             ]
             conn.execute(''.join(query))
 
@@ -48,10 +49,17 @@ class SQLiteHandler(logging.Handler):
             query = [
                 "INSERT INTO {:s}".format(self.table),
                 "(name, levelno, levelname, timestamp, pathname, lineno, threadName,",
-                " processName, msg) ",
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                " processName, msg, exc_info) ",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             ]
+
+            if record.exc_info is not None:
+                exc = '\n'.join(tb.format_exception(*record.exc_info))
+            else:
+                exc = None
+
             conn.execute("".join(query),
                          (record.name, record.levelno, record.levelname,
                           record.created, record.pathname, record.lineno,
-                          record.threadName, record.processName, record.msg))
+                          record.threadName, record.processName, record.msg,
+                          exc))

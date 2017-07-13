@@ -28,8 +28,14 @@ def test_sqlite_handler(sqlite_path):
     logger.error("error")
     logger.critical("critical")
 
+    try:
+        raise Exception("this is an exception")
+    except Exception:
+        logger.error("uh oh", exc_info=True)
+
     with sqlite3.connect(sqlite_path) as conn:
         res = conn.execute("SELECT levelname FROM logs").fetchall()
+        exc = conn.execute("SELECT * FROM logs WHERE exc_info NOT NULL").fetchall()
 
     levels = [level[0] for level in res]
 
@@ -38,3 +44,5 @@ def test_sqlite_handler(sqlite_path):
     assert "WARNING" in levels
     assert "ERROR" in levels
     assert "CRITICAL" in levels
+    print(exc)
+    assert len(exc) > 0
